@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Building (CVC Words) - Drag and Drop</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+        }
+        h1 {
+            color: #333;
+        }
+        .logo {
+            width: 100px;
+            margin-top: 20px;
+        }
+        .instructions {
+            margin: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+        .word-to-form {
+            font-size: 32px;
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .word-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .word-slot {
+            width: 60px;
+            height: 60px;
+            border: 2px dashed #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+        }
+        .letters-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .letter {
+            width: 60px;
+            height: 60px;
+            background-color: #1E90FF;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            border-radius: 5px;
+        }
+        .feedback {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .more-lessons-btn {
+            margin-top: 80px; /* Adjusted to move button two lines down */
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .more-lessons-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Logo -->
+<img src="https://i.imgur.com/mwpTHJj.png" class="logo" alt="Logo">
+
+<h1>Word Building - Drag and Drop the Letters</h1>
+
+<!-- Instructions -->
+<div class="instructions">
+    Drag the letters below to fill in the blanks and form the word shown in red. Complete as many words as you can!
+</div>
+
+<!-- Display the word to be formed -->
+<div class="word-to-form" id="wordToForm">cat</div>
+
+<!-- Word slots where the letters will be dropped -->
+<div class="word-container">
+    <div class="word-slot" id="slot1"></div>
+    <div class="word-slot" id="slot2"></div>
+    <div class="word-slot" id="slot3"></div>
+</div>
+
+<!-- Letters to drag and drop -->
+<div class="letters-container" id="lettersContainer">
+    <!-- Letters will be generated here -->
+</div>
+
+<!-- Feedback message -->
+<div class="feedback" id="feedbackMessage"></div>
+
+<!-- "More Lessons" button -->
+<a href="https://sites.google.com/view/grades-1/home" class="more-lessons-btn">More Lessons</a>
+
+<!-- Audio feedback -->
+<audio id="wordSound"></audio>
+
+<!-- JavaScript -->
+<script>
+    const feedbackMessage = document.getElementById('feedbackMessage');
+    const wordSound = document.getElementById('wordSound');
+    const wordSlots = [document.getElementById('slot1'), document.getElementById('slot2'), document.getElementById('slot3')];
+    const lettersContainer = document.getElementById('lettersContainer');
+    const wordToForm = document.getElementById('wordToForm');
+
+    // List of words and their audio
+    const words = [
+        { word: 'cat', sound: 'sounds/cat.mp3' },
+        { word: 'dog', sound: 'sounds/dog.mp3' },
+        { word: 'bat', sound: 'sounds/bat.mp3' },
+        { word: 'pen', sound: 'sounds/pen.mp3' },
+        { word: 'sun', sound: 'sounds/sun.mp3' },
+        { word: 'hat', sound: 'sounds/hat.mp3' },
+        { word: 'run', sound: 'sounds/run.mp3' },
+        { word: 'pig', sound: 'sounds/pig.mp3' },
+        { word: 'bug', sound: 'sounds/bug.mp3' },
+        { word: 'cup', sound: 'sounds/cup.mp3' }
+    ];
+
+    let currentWord = null;
+
+    // Function to shuffle array
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // Generate a random word and setup the game
+    function setupGame() {
+        // Clear previous slots and feedback
+        wordSlots.forEach(slot => {
+            slot.innerHTML = '';
+            slot.style.border = '2px dashed #333';
+        });
+        feedbackMessage.innerText = '';
+
+        // Select a random word
+        currentWord = words[Math.floor(Math.random() * words.length)];
+        wordToForm.innerText = currentWord.word;
+
+        // Generate the letters and shuffle them
+        let letters = currentWord.word.split('');
+        letters = shuffle(letters);
+
+        // Clear the letters container
+        lettersContainer.innerHTML = '';
+
+        // Create draggable letters
+        letters.forEach(letter => {
+            const letterElement = document.createElement('div');
+            letterElement.classList.add('letter');
+            letterElement.innerText = letter;
+            letterElement.draggable = true;
+            letterElement.ondragstart = dragStart;
+            lettersContainer.appendChild(letterElement);
+        });
+    }
+
+    // Drag and Drop events
+    wordSlots.forEach(slot => {
+        slot.ondragover = dragOver;
+        slot.ondrop = drop;
+    });
+
+    let draggedLetter = null;
+
+    function dragStart(event) {
+        draggedLetter = event.target;
+    }
+
+    function dragOver(event) {
+        event.preventDefault();
+    }
+
+    function drop(event) {
+        if (event.target.innerHTML === '') {
+            event.target.appendChild(draggedLetter);
+            checkWord();
+        }
+    }
+
+    // Check if the formed word is correct
+    function checkWord() {
+        const formedWord = wordSlots.map(slot => slot.innerText).join('');
+        if (formedWord.length === 3) {
+            if (formedWord === currentWord.word) {
+                feedbackMessage.innerText = "Congratulations! Great job!";
+                feedbackMessage.style.color = "green";
+                wordSound.src = currentWord.sound;
+                wordSound.play();
+                // Automatically go to next word after a delay
+                setTimeout(setupGame, 2000);
+            } else {
+                feedbackMessage.innerText = "Oh sorry, Thats Wrong!";
+                feedbackMessage.style.color = "red";
+                // Clear the slots and regenerate letters to try again
+                setTimeout(() => {
+                    wordSlots.forEach(slot => {
+                        slot.innerHTML = '';
+                        slot.style.border = '2px dashed #333';
+                    });
+                    setupGame(); // Regenerate letters after clearing
+                }, 1500); // Delay for better experience
+            }
+        }
+    }
+
+    // Start the game
+    setupGame();
+</script>
+
+</body>
+</html>
